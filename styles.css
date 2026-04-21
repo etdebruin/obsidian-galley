@@ -574,29 +574,32 @@ h2.galley-chapter-title {
 .galley-paginated {
   overflow: hidden;
   position: relative;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: auto;
 }
 
 .galley-paginated .galley-running-header {
   display: none;
 }
 
-.galley-paginated .galley-manuscript {
-  column-width: var(--galley-column-width, 100vw);
-  column-gap: var(--galley-column-gap, 0);
-  height: var(--galley-content-height, 100%);
-  column-fill: auto;
-  max-width: none;
-  padding: 24px 24px 0;
-  overflow: visible;
-  will-change: transform;
-  transform: translateX(var(--galley-translate-x, 0));
-  touch-action: none;
+/* Scroll wrapper: native horizontal scroll + snap for pagination */
+.galley-scroll-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
 }
 
-.galley-paginated .galley-manuscript.galley-page-animate {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+.galley-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.galley-paginated .galley-manuscript {
+  /* column-width, column-gap, height set by JS */
+  column-fill: auto;
+  max-width: none;
+  padding: 24px;
+  scroll-snap-align: start;
 }
 
 .galley-paginated .galley-header {

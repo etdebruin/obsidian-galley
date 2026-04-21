@@ -74,26 +74,31 @@ export function computePageCount(
 
 /**
  * Manages pagination state and touch interactions for a container element.
- * This is the DOM-aware controller — instantiated only on mobile.
+ *
+ * Strategy: wrap the CSS-columned content in a scroll wrapper that uses
+ * native scrollTo + scroll-snap for reliable page navigation on mobile.
+ * Touch events handle tap zones and update the page indicator.
  */
 export class PageController {
   private container: HTMLElement;
   private content: HTMLElement;
+  private wrapper: HTMLElement;
   private indicator: HTMLElement;
   private pageHeader: HTMLElement;
   private currentPage = 0;
   private totalPages = 1;
   private pageWidth = 0;
-  private touchStartX = 0;
-  private touchStartY = 0;
-  private touchStartTime = 0;
-  private isDragging = false;
-  private directionLocked: "horizontal" | "vertical" | null = null;
-  private currentTranslate = 0;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(container: HTMLElement, content: HTMLElement) {
     this.container = container;
     this.content = content;
+
+    // Create scroll wrapper between container and content
+    this.wrapper = document.createElement("div");
+    this.wrapper.className = "galley-scroll-wrapper";
+    this.content.parentNode?.insertBefore(this.wrapper, this.content);
+    this.wrapper.appendChild(this.content);
 
     this.pageHeader = document.createElement("div");
     this.pageHeader.className = "galley-page-header";
@@ -108,15 +113,11 @@ export class PageController {
   }
 
   private bindEvents(): void {
-    this.content.addEventListener("touchstart", this.onTouchStart, {
-      passive: true,
-    });
-    this.content.addEventListener("touchmove", this.onTouchMove, {
-      passive: false,
-    });
-    this.content.addEventListener("touchend", this.onTouchEnd, {
-      passive: true,
-    });
+    // Listen for scroll events to update page indicator
+    this.wrapper.addEventListener("scroll", this.onScroll, { passive: true });
+
+    // Tap zones for prev/next
+    this.wrapper.addEventListener("click", this.onTap);
 
     const resizeObserver = new ResizeObserver(() => this.recalculate());
     resizeObserver.observe(this.container);
@@ -127,13 +128,17 @@ export class PageController {
 
     const padding = 48;
     const columnWidth = this.pageWidth - padding;
-    // Reserve space for page indicator (30px) and mobile toolbar (60px)
     const bottomReserve = 90;
-    this.content.setCssProps({
-      "--galley-column-width": `${columnWidth}px`,
-      "--galley-column-gap": `${padding}px`,
-      "--galley-content-height": `${this.container.clientHeight - bottomReserve}px`,
-    });
+    const contentHeight = this.container.clientHeight - bottomReserve;
+
+    // Set dimensions on wrapper
+    this.wrapper.style.setProperty("width", `${this.pageWidth}px`);
+    this.wrapper.style.setProperty("height", `${contentHeight}px`);
+
+    // Set column layout on content
+    this.content.style.setProperty("column-width", `${columnWidth}px`);
+    this.content.style.setProperty("column-gap", `${padding}px`);
+    this.content.style.setProperty("height", `${contentHeight}px`);
 
     void this.content.offsetWidth;
 
@@ -142,108 +147,52 @@ export class PageController {
       this.pageWidth
     );
     this.currentPage = clampPage(this.currentPage, this.totalPages);
-    this.updatePosition(false);
+    this.goToPage(this.currentPage, false);
     this.updateIndicator();
   }
 
-  private onTouchStart = (e: TouchEvent): void => {
-    this.touchStartX = e.touches[0].clientX;
-    this.touchStartY = e.touches[0].clientY;
-    this.touchStartTime = Date.now();
-    this.isDragging = true;
-    this.directionLocked = null;
-    this.content.removeClass("galley-page-animate");
-  };
-
-  private onTouchMove = (e: TouchEvent): void => {
-    if (!this.isDragging) return;
-
-    const deltaX = e.touches[0].clientX - this.touchStartX;
-    const deltaY = e.touches[0].clientY - this.touchStartY;
-    const absDeltaX = Math.abs(deltaX);
-    const absDeltaY = Math.abs(deltaY);
-
-    // Lock direction on first significant movement
-    if (!this.directionLocked && (absDeltaX > 5 || absDeltaY > 5)) {
-      this.directionLocked = absDeltaX > absDeltaY ? "horizontal" : "vertical";
-    }
-
-    // Vertical — let browser handle native scroll
-    if (this.directionLocked === "vertical") {
-      this.isDragging = false;
-      return;
-    }
-
-    // Horizontal — take full control, prevent native scroll
-    if (this.directionLocked === "horizontal") {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const baseOffset = -(this.currentPage * this.pageWidth);
-      this.currentTranslate = baseOffset + deltaX;
-      this.content.setCssProps({
-        "--galley-translate-x": `${this.currentTranslate}px`,
-      });
-    }
-  };
-
-  private onTouchEnd = (e: TouchEvent): void => {
-    if (!this.isDragging) {
-      const touch = e.changedTouches[0];
-      const elapsed = Date.now() - this.touchStartTime;
-      if (elapsed < 300) {
-        const zone = getTapZone(touch.clientX, this.pageWidth);
-        if (zone === TapZone.Left) this.prevPage();
-        else if (zone === TapZone.Right) this.nextPage();
+  private onScroll = (): void => {
+    // Debounce: update page number after scroll settles
+    if (this.scrollTimer) clearTimeout(this.scrollTimer);
+    this.scrollTimer = setTimeout(() => {
+      if (this.pageWidth > 0) {
+        this.currentPage = Math.round(this.wrapper.scrollLeft / this.pageWidth);
+        this.currentPage = clampPage(this.currentPage, this.totalPages);
+        this.updateIndicator();
       }
-      return;
-    }
+    }, 50);
+  };
 
-    this.isDragging = false;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-
-    const result = detectSwipe({
-      startX: this.touchStartX,
-      endX,
-      startY: this.touchStartY,
-      endY,
-    });
-
-    if (result === SwipeResult.Left) {
-      this.nextPage();
-    } else if (result === SwipeResult.Right) {
+  private onTap = (e: MouseEvent): void => {
+    // Only handle taps, not drags/swipes (those are handled by native scroll)
+    const zone = getTapZone(e.clientX, this.pageWidth);
+    if (zone === TapZone.Left) {
       this.prevPage();
-    } else {
-      this.updatePosition(true);
+    } else if (zone === TapZone.Right) {
+      this.nextPage();
     }
   };
 
   nextPage(): void {
     if (this.currentPage < this.totalPages - 1) {
       this.currentPage++;
+      this.goToPage(this.currentPage, true);
+      this.updateIndicator();
     }
-    this.updatePosition(true);
-    this.updateIndicator();
   }
 
   prevPage(): void {
     if (this.currentPage > 0) {
       this.currentPage--;
+      this.goToPage(this.currentPage, true);
+      this.updateIndicator();
     }
-    this.updatePosition(true);
-    this.updateIndicator();
   }
 
-  private updatePosition(animate: boolean): void {
-    const offset = -(this.currentPage * this.pageWidth);
-    if (animate) {
-      this.content.addClass("galley-page-animate");
-    } else {
-      this.content.removeClass("galley-page-animate");
-    }
-    this.content.setCssProps({
-      "--galley-translate-x": `${offset}px`,
+  private goToPage(page: number, smooth: boolean): void {
+    this.wrapper.scrollTo({
+      left: page * this.pageWidth,
+      behavior: smooth ? "smooth" : "auto",
     });
   }
 
@@ -253,16 +202,13 @@ export class PageController {
     this.indicator.textContent = `${current} of ${this.totalPages}`;
   }
 
-  goToPage(page: number): void {
-    this.currentPage = clampPage(page, this.totalPages);
-    this.updatePosition(true);
-    this.updateIndicator();
-  }
-
   destroy(): void {
-    this.content.removeEventListener("touchstart", this.onTouchStart);
-    this.content.removeEventListener("touchmove", this.onTouchMove);
-    this.content.removeEventListener("touchend", this.onTouchEnd);
+    this.wrapper.removeEventListener("scroll", this.onScroll);
+    this.wrapper.removeEventListener("click", this.onTap);
+    if (this.scrollTimer) clearTimeout(this.scrollTimer);
+    // Unwrap: move content back out of wrapper
+    this.wrapper.parentNode?.insertBefore(this.content, this.wrapper);
+    this.wrapper.remove();
     this.pageHeader.remove();
     this.indicator.remove();
   }
