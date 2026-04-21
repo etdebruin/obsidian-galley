@@ -1,13 +1,15 @@
-import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile, Platform } from "obsidian";
 import type GalleyPlugin from "./main";
 import { parseManuscript } from "./manuscript";
 import { parseHighlights, applyHighlightsToHtml, GalleyHighlight } from "./highlights";
+import { PageController } from "./paginator";
 
 export const GALLEY_VIEW_TYPE = "galley-view";
 
 export class GalleyView extends ItemView {
   plugin: GalleyPlugin;
   private currentFile: string | null = null;
+  private pageController: PageController | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: GalleyPlugin) {
     super(leaf);
@@ -130,8 +132,13 @@ export class GalleyView extends ItemView {
       this.renderHighlightsSummary(galleyEl, highlights);
     }
 
-    // Running header on scroll
-    this.setupRunningHeader(container, manuscript.chapters);
+    // Mobile: paginated swipe view; Desktop: scroll with running header
+    if (Platform.isMobile) {
+      container.addClass("galley-paginated");
+      this.setupPagination(container, galleyEl);
+    } else {
+      this.setupRunningHeader(container, manuscript.chapters);
+    }
   }
 
   private setupRunningHeader(
@@ -168,6 +175,19 @@ export class GalleyView extends ItemView {
       .forEach((el) => observer.observe(el));
 
     this.register(() => observer.disconnect());
+  }
+
+  private setupPagination(
+    container: HTMLElement,
+    content: HTMLElement
+  ): void {
+    // Destroy previous controller if any
+    this.pageController?.destroy();
+
+    // Small delay to let the DOM settle before measuring columns
+    setTimeout(() => {
+      this.pageController = new PageController(container, content);
+    }, 100);
   }
 
   private getHighlights(file: TFile): GalleyHighlight[] {
@@ -219,6 +239,8 @@ export class GalleyView extends ItemView {
   }
 
   async onClose(): Promise<void> {
+    this.pageController?.destroy();
+    this.pageController = null;
     this.contentEl.empty();
   }
 }

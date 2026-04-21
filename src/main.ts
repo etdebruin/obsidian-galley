@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Platform, Plugin } from "obsidian";
 import { GalleyView, GALLEY_VIEW_TYPE } from "./galley-view";
 import { GalleySettingTab } from "./settings-tab";
 import { GalleySettings, DEFAULT_SETTINGS } from "./settings";
@@ -42,9 +42,12 @@ export default class GalleyPlugin extends Plugin {
     let leaf = workspace.getLeavesOfType(GALLEY_VIEW_TYPE)[0];
 
     if (!leaf) {
-      const rightLeaf = workspace.getRightLeaf(false);
-      if (rightLeaf) {
-        leaf = rightLeaf;
+      // On mobile, open as a full-screen tab; on desktop, use right sidebar
+      const newLeaf = Platform.isMobile
+        ? workspace.getLeaf("tab")
+        : workspace.getRightLeaf(false);
+      if (newLeaf) {
+        leaf = newLeaf;
         await leaf.setViewState({ type: GALLEY_VIEW_TYPE, active: true });
       }
     }

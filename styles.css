@@ -482,17 +482,145 @@ h2.galley-chapter-title {
   }
 }
 
+/* ============================================================
+   MOBILE: Paginated Swipe-to-Page Mode
+   ============================================================ */
+
+.galley-paginated {
+  overflow: hidden;
+  position: relative;
+}
+
+.galley-paginated .galley-running-header {
+  display: none;
+}
+
+.galley-paginated .galley-manuscript {
+  /* CSS multi-column layout creates the pages */
+  column-width: 100vw;
+  column-fill: auto;
+  column-gap: 0;
+  height: 100%;
+  max-width: none;
+  padding: 24px 24px 60px;
+  overflow: visible;
+  will-change: transform;
+}
+
+.galley-paginated .galley-header {
+  break-after: column;
+  padding: 60px 0 32px;
+}
+
+.galley-paginated .galley-toc {
+  break-after: column;
+}
+
+.galley-paginated .galley-chapter {
+  break-before: column;
+  margin-bottom: 0;
+  padding-top: 24px;
+}
+
+.galley-paginated .galley-chapter:first-child {
+  break-before: auto;
+}
+
+/* Prevent elements from breaking across pages */
+.galley-paginated .galley-chapter-title {
+  break-after: avoid;
+}
+
+.galley-paginated .galley-chapter-body p {
+  orphans: 3;
+  widows: 3;
+}
+
+.galley-paginated .galley-chapter-body blockquote {
+  break-inside: avoid;
+}
+
+/* --- Page Indicator --- */
+.galley-page-indicator {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--galley-text-muted);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* --- Page Turn Shadow (during drag) --- */
+.galley-paginated .galley-manuscript::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 0.06),
+    transparent
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
 /* --- Responsive adjustments --- */
 @media (max-width: 600px) {
   .galley-manuscript {
-    padding: 24px 16px 80px;
+    padding: 16px 12px 80px;
   }
 
   .galley-header {
-    padding: 40px 0 32px;
+    padding: 40px 0 24px;
   }
 
   .galley-title {
     font-size: 1.8em;
+  }
+
+  /* Scaled-down drop caps */
+  .galley-chapter-body p:first-of-type::first-letter {
+    font-size: 2.2em;
+    padding-right: 4px;
+    padding-top: 2px;
+  }
+
+  /* Tighter running header */
+  .galley-running-header {
+    padding: 4px 16px;
+    font-size: 0.65em;
+    backdrop-filter: none;
+  }
+
+  /* Tighter chapter spacing */
+  .galley-chapter {
+    margin-bottom: 40px;
+  }
+
+  /* Tighter TOC */
+  .galley-toc {
+    padding: 20px 0 32px;
+    margin-bottom: 32px;
+  }
+
+  .galley-toc-list li {
+    padding: 4px 0;
+  }
+
+  h1.galley-chapter-title {
+    font-size: 1.5em;
+  }
+
+  h2.galley-chapter-title {
+    font-size: 1.2em;
   }
 }
