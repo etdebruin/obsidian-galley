@@ -36,7 +36,6 @@ export function detectSwipe(
   const deltaY = Math.abs(input.endY - input.startY);
   const absDeltaX = Math.abs(deltaX);
 
-  // Reject if too short or more vertical than horizontal
   if (absDeltaX < threshold || deltaY > absDeltaX) {
     return SwipeResult.None;
   }
@@ -94,7 +93,6 @@ export class PageController {
     this.container = container;
     this.content = content;
 
-    // Create page indicator
     this.indicator = document.createElement("div");
     this.indicator.className = "galley-page-indicator";
     this.container.appendChild(this.indicator);
@@ -114,7 +112,6 @@ export class PageController {
       passive: true,
     });
 
-    // Recalculate on resize
     const resizeObserver = new ResizeObserver(() => this.recalculate());
     resizeObserver.observe(this.container);
   }
@@ -122,14 +119,14 @@ export class PageController {
   recalculate(): void {
     this.pageWidth = this.container.clientWidth;
 
-    // Set column width dynamically — CSS 100vw is unreliable in Obsidian's webview
-    const padding = 48; // 24px left + 24px right
+    const padding = 48;
     const columnWidth = this.pageWidth - padding;
-    this.content.style.columnWidth = `${columnWidth}px`;
-    this.content.style.columnGap = `${padding}px`;
-    this.content.style.height = `${this.container.clientHeight - 60}px`; // leave room for indicator
+    this.content.setCssProps({
+      "--galley-column-width": `${columnWidth}px`,
+      "--galley-column-gap": `${padding}px`,
+      "--galley-content-height": `${this.container.clientHeight - 60}px`,
+    });
 
-    // Force layout recalc before measuring scroll width
     void this.content.offsetWidth;
 
     this.totalPages = computePageCount(
@@ -146,7 +143,7 @@ export class PageController {
     this.touchStartY = e.touches[0].clientY;
     this.touchStartTime = Date.now();
     this.isDragging = true;
-    this.content.style.transition = "none";
+    this.content.removeClass("galley-page-animate");
   };
 
   private onTouchMove = (e: TouchEvent): void => {
@@ -155,7 +152,6 @@ export class PageController {
     const deltaX = e.touches[0].clientX - this.touchStartX;
     const deltaY = Math.abs(e.touches[0].clientY - this.touchStartY);
 
-    // If vertical scrolling, bail
     if (deltaY > Math.abs(deltaX)) {
       this.isDragging = false;
       return;
@@ -163,15 +159,15 @@ export class PageController {
 
     e.preventDefault();
 
-    // Live drag follow — offset from current page position
     const baseOffset = -(this.currentPage * this.pageWidth);
     this.currentTranslate = baseOffset + deltaX;
-    this.content.style.transform = `translateX(${this.currentTranslate}px)`;
+    this.content.setCssProps({
+      "--galley-translate-x": `${this.currentTranslate}px`,
+    });
   };
 
   private onTouchEnd = (e: TouchEvent): void => {
     if (!this.isDragging) {
-      // Check for tap
       const touch = e.changedTouches[0];
       const elapsed = Date.now() - this.touchStartTime;
       if (elapsed < 300) {
@@ -198,7 +194,6 @@ export class PageController {
     } else if (result === SwipeResult.Right) {
       this.prevPage();
     } else {
-      // Snap back
       this.updatePosition(true);
     }
   };
@@ -206,31 +201,29 @@ export class PageController {
   nextPage(): void {
     if (this.currentPage < this.totalPages - 1) {
       this.currentPage++;
-      this.updatePosition(true);
-      this.updateIndicator();
-    } else {
-      this.updatePosition(true); // snap back
     }
+    this.updatePosition(true);
+    this.updateIndicator();
   }
 
   prevPage(): void {
     if (this.currentPage > 0) {
       this.currentPage--;
-      this.updatePosition(true);
-      this.updateIndicator();
-    } else {
-      this.updatePosition(true); // snap back
     }
+    this.updatePosition(true);
+    this.updateIndicator();
   }
 
   private updatePosition(animate: boolean): void {
     const offset = -(this.currentPage * this.pageWidth);
     if (animate) {
-      this.content.style.transition = "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)";
+      this.content.addClass("galley-page-animate");
     } else {
-      this.content.style.transition = "none";
+      this.content.removeClass("galley-page-animate");
     }
-    this.content.style.transform = `translateX(${offset}px)`;
+    this.content.setCssProps({
+      "--galley-translate-x": `${offset}px`,
+    });
   }
 
   private updateIndicator(): void {

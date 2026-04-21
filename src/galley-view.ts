@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile, Platform, Menu } from "obsidian";
 import type GalleyPlugin from "./main";
 import { parseManuscript } from "./manuscript";
-import { parseHighlights, applyHighlightsToHtml, GalleyHighlight, HIGHLIGHT_COLORS } from "./highlights";
+import { parseHighlights, GalleyHighlight, HIGHLIGHT_COLORS } from "./highlights";
 import { addHighlightToFrontmatter, removeHighlightFromFrontmatter } from "./highlight-writer";
 import { PageController } from "./paginator";
 
@@ -32,13 +32,13 @@ export class GalleyView extends ItemView {
   async onOpen(): Promise<void> {
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", () => {
-        this.renderActiveFile();
+        void this.renderActiveFile();
       })
     );
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
         if (file.path === this.currentFile) {
-          this.renderActiveFile();
+          void this.renderActiveFile();
         }
       })
     );
@@ -51,7 +51,6 @@ export class GalleyView extends ItemView {
       const selectedText = selection?.toString().trim();
       if (!selectedText) return;
 
-      // Check if right-clicking an existing highlight
       const target = e.target as HTMLElement;
       const existingHighlight = target.closest(".galley-highlight") as HTMLElement | null;
 
@@ -59,17 +58,17 @@ export class GalleyView extends ItemView {
       const menu = new Menu();
 
       if (existingHighlight) {
-        // Offer to remove existing highlight
         menu.addItem((item) =>
           item
             .setTitle("Remove highlight")
             .setIcon("trash")
-            .onClick(() => this.removeHighlight(existingHighlight.textContent || ""))
+            .onClick(() => {
+              void this.removeHighlight(existingHighlight.textContent || "");
+            })
         );
         menu.addSeparator();
       }
 
-      // Color options
       const colors = Object.keys(HIGHLIGHT_COLORS) as string[];
       const colorLabels: Record<string, string> = {
         yellow: "Yellow — needs work",
@@ -84,7 +83,9 @@ export class GalleyView extends ItemView {
           item
             .setTitle(`Highlight: ${colorLabels[color] || color}`)
             .setIcon("highlighter")
-            .onClick(() => this.addHighlightInteractive(selectedText, color))
+            .onClick(() => {
+              void this.addHighlightInteractive(selectedText, color);
+            })
         );
       }
 
@@ -93,7 +94,6 @@ export class GalleyView extends ItemView {
   }
 
   private async addHighlightInteractive(text: string, color: string): Promise<void> {
-    // Prompt for optional note
     const note = await this.promptForNote();
     const highlight: GalleyHighlight = { text, color, note: note || undefined };
     await this.writeHighlightToFile(highlight);
@@ -103,23 +103,29 @@ export class GalleyView extends ItemView {
     return new Promise((resolve) => {
       const modal = document.createElement("div");
       modal.className = "galley-note-modal";
-      modal.innerHTML = `
-        <div class="galley-note-backdrop"></div>
-        <div class="galley-note-dialog">
-          <label class="galley-note-label">Add a note (optional)</label>
-          <input type="text" class="galley-note-input" placeholder="e.g. pacing feels rushed here" />
-          <div class="galley-note-buttons">
-            <button class="galley-note-btn galley-note-skip">Skip</button>
-            <button class="galley-note-btn galley-note-save">Save</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
 
-      const input = modal.querySelector(".galley-note-input") as HTMLInputElement;
-      const saveBtn = modal.querySelector(".galley-note-save") as HTMLButtonElement;
-      const skipBtn = modal.querySelector(".galley-note-skip") as HTMLButtonElement;
-      const backdrop = modal.querySelector(".galley-note-backdrop") as HTMLElement;
+      const backdrop = modal.createDiv({ cls: "galley-note-backdrop" });
+      const dialog = modal.createDiv({ cls: "galley-note-dialog" });
+      dialog.createEl("label", {
+        cls: "galley-note-label",
+        text: "Add a note (optional)",
+      });
+      const input = dialog.createEl("input", {
+        cls: "galley-note-input",
+        type: "text",
+        placeholder: "e.g. pacing feels rushed here",
+      });
+      const buttons = dialog.createDiv({ cls: "galley-note-buttons" });
+      const skipBtn = buttons.createEl("button", {
+        cls: "galley-note-btn galley-note-skip",
+        text: "Skip",
+      });
+      const saveBtn = buttons.createEl("button", {
+        cls: "galley-note-btn galley-note-save",
+        text: "Save",
+      });
+
+      document.body.appendChild(modal);
 
       const cleanup = (value: string | null) => {
         modal.remove();
@@ -145,7 +151,6 @@ export class GalleyView extends ItemView {
     const content = await this.app.vault.read(file);
     const updated = addHighlightToFrontmatter(content, highlight);
     await this.app.vault.modify(file, updated);
-    // View will re-render via the modify event listener
   }
 
   private async removeHighlight(text: string): Promise<void> {
@@ -173,16 +178,14 @@ export class GalleyView extends ItemView {
     const container = this.contentEl;
     container.empty();
     container.addClass("galley-container");
-    container.setAttribute(
-      "style",
-      `--galley-font: ${settings.fontFamily}; ` +
-        `--galley-size: ${settings.fontSize}px; ` +
-        `--galley-line-height: ${settings.lineHeight}; ` +
-        `--galley-page-width: ${settings.pageWidth}px;`
-    );
+    container.setCssProps({
+      "--galley-font": settings.fontFamily,
+      "--galley-size": `${settings.fontSize}px`,
+      "--galley-line-height": String(settings.lineHeight),
+      "--galley-page-width": `${settings.pageWidth}px`,
+    });
     container.setAttribute("data-galley-theme", settings.theme);
 
-    // Use Obsidian's MarkdownRenderer for rich rendering
     const galleyEl = container.createDiv({ cls: "galley-manuscript" });
 
     // Header
@@ -215,7 +218,7 @@ export class GalleyView extends ItemView {
       }
     }
 
-    // Chapters — rendered via Obsidian's markdown renderer for full plugin support
+    // Chapters
     const body = galleyEl.createDiv({ cls: "galley-body" });
     for (const chapter of manuscript.chapters) {
       const section = body.createDiv({ cls: "galley-chapter" });
@@ -242,10 +245,10 @@ export class GalleyView extends ItemView {
     // Context menu for highlight creation
     this.setupContextMenu(body);
 
-    // Apply frontmatter-based highlights
+    // Apply frontmatter-based highlights via DOM manipulation instead of innerHTML
     const highlights = this.getHighlights(file);
     if (highlights.length > 0) {
-      this.applyHighlights(body, highlights);
+      this.applyHighlightsDOM(body, highlights);
       this.renderHighlightsSummary(galleyEl, highlights);
     }
 
@@ -298,10 +301,8 @@ export class GalleyView extends ItemView {
     container: HTMLElement,
     content: HTMLElement
   ): void {
-    // Destroy previous controller if any
     this.pageController?.destroy();
 
-    // Small delay to let the DOM settle before measuring columns
     setTimeout(() => {
       this.pageController = new PageController(container, content);
     }, 100);
@@ -312,15 +313,50 @@ export class GalleyView extends ItemView {
     return parseHighlights(cache?.frontmatter);
   }
 
-  private applyHighlights(
+  /**
+   * Apply highlights using DOM TreeWalker instead of innerHTML.
+   */
+  private applyHighlightsDOM(
     container: HTMLElement,
     highlights: GalleyHighlight[]
   ): void {
-    // Apply highlights to each chapter body's rendered HTML
-    container.querySelectorAll(".galley-chapter-body").forEach((el) => {
-      const htmlEl = el as HTMLElement;
-      htmlEl.innerHTML = applyHighlightsToHtml(htmlEl.innerHTML, highlights);
-    });
+    for (const highlight of highlights) {
+      const walker = document.createTreeWalker(
+        container,
+        NodeFilter.SHOW_TEXT
+      );
+
+      const nodesToProcess: { node: Text; index: number }[] = [];
+      let textNode: Text | null;
+      while ((textNode = walker.nextNode() as Text | null)) {
+        const idx = textNode.textContent?.indexOf(highlight.text) ?? -1;
+        if (idx >= 0) {
+          nodesToProcess.push({ node: textNode, index: idx });
+        }
+      }
+
+      for (const { node, index } of nodesToProcess) {
+        const text = node.textContent || "";
+        const before = text.substring(0, index);
+        const match = text.substring(index, index + highlight.text.length);
+        const after = text.substring(index + highlight.text.length);
+
+        const span = document.createElement("span");
+        span.className = `galley-highlight galley-highlight--${highlight.color}`;
+        span.textContent = match;
+        if (highlight.note) {
+          span.setAttribute("title", highlight.note);
+        }
+
+        const parent = node.parentNode;
+        if (parent) {
+          if (before) parent.insertBefore(document.createTextNode(before), node);
+          parent.insertBefore(span, node);
+          if (after) parent.insertBefore(document.createTextNode(after), node);
+          parent.removeChild(node);
+        }
+      }
+    }
   }
 
   private renderHighlightsSummary(
@@ -330,7 +366,7 @@ export class GalleyView extends ItemView {
     const summary = parent.createDiv({ cls: "galley-highlights-summary" });
     summary.createEl("h2", {
       cls: "galley-highlights-title",
-      text: "Revision Marks",
+      text: "Revision marks",
     });
     const list = summary.createEl("ul", { cls: "galley-highlights-list" });
     for (const h of highlights) {
@@ -355,9 +391,10 @@ export class GalleyView extends ItemView {
     });
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     this.pageController?.destroy();
     this.pageController = null;
     this.contentEl.empty();
+    return Promise.resolve();
   }
 }

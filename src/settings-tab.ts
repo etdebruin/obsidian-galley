@@ -18,8 +18,8 @@ export class GalleySettingTab extends PluginSettingTab {
       .setDesc("Choose the reading ambiance")
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("warm", "Warm Ivory")
-          .addOption("cool", "Cool White")
+          .addOption("warm", "Warm ivory")
+          .addOption("cool", "Cool white")
           .addOption("sepia", "Sepia")
           .addOption("dark", "Midnight")
           .setValue(this.plugin.settings.theme)

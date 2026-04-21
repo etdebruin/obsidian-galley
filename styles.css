@@ -581,12 +581,19 @@ h2.galley-chapter-title {
 }
 
 .galley-paginated .galley-manuscript {
-  /* Column width and height set dynamically by PageController */
+  column-width: var(--galley-column-width, 100vw);
+  column-gap: var(--galley-column-gap, 0);
+  height: var(--galley-content-height, 100%);
   column-fill: auto;
   max-width: none;
   padding: 24px;
   overflow: visible;
   will-change: transform;
+  transform: translateX(var(--galley-translate-x, 0));
+}
+
+.galley-paginated .galley-manuscript.galley-page-animate {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .galley-paginated .galley-header {

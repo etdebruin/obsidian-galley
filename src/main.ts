@@ -12,27 +12,28 @@ export default class GalleyPlugin extends Plugin {
     this.registerView(GALLEY_VIEW_TYPE, (leaf) => new GalleyView(leaf, this));
 
     this.addCommand({
-      id: "open-galley-view",
-      name: "Open Galley view",
-      callback: () => this.activateView(),
+      id: "open-view",
+      name: "Open reading view",
+      callback: () => {
+        void this.activateView();
+      },
     });
 
     this.addCommand({
-      id: "open-galley-view-current",
-      name: "Read current note in Galley",
+      id: "read-current-note",
+      name: "Read current note",
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         if (!file || file.extension !== "md") return false;
-        if (!checking) this.activateView();
+        if (!checking) void this.activateView();
         return true;
       },
     });
 
     this.addSettingTab(new GalleySettingTab(this.app, this));
 
-    // Add ribbon icon
-    this.addRibbonIcon("book-open", "Open Galley", () => {
-      this.activateView();
+    this.addRibbonIcon("book-open", "Open reading view", () => {
+      void this.activateView();
     });
   }
 
@@ -42,7 +43,6 @@ export default class GalleyPlugin extends Plugin {
     let leaf = workspace.getLeavesOfType(GALLEY_VIEW_TYPE)[0];
 
     if (!leaf) {
-      // On mobile, open as a full-screen tab; on desktop, use right sidebar
       const newLeaf = Platform.isMobile
         ? workspace.getLeaf("tab")
         : workspace.getRightLeaf(false);
@@ -55,10 +55,6 @@ export default class GalleyPlugin extends Plugin {
     if (leaf) {
       workspace.revealLeaf(leaf);
     }
-  }
-
-  onunload(): void {
-    this.app.workspace.detachLeavesOfType(GALLEY_VIEW_TYPE);
   }
 
   async loadSettings(): Promise<void> {
