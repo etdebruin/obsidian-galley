@@ -1,6 +1,7 @@
-import { ItemView, WorkspaceLeaf, MarkdownRenderer } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile } from "obsidian";
 import type GalleyPlugin from "./main";
 import { parseManuscript } from "./manuscript";
+import { parseHighlights, applyHighlightsToHtml, GalleyHighlight } from "./highlights";
 
 export const GALLEY_VIEW_TYPE = "galley-view";
 
@@ -122,6 +123,13 @@ export class GalleyView extends ItemView {
       );
     }
 
+    // Apply frontmatter-based highlights
+    const highlights = this.getHighlights(file);
+    if (highlights.length > 0) {
+      this.applyHighlights(body, highlights);
+      this.renderHighlightsSummary(galleyEl, highlights);
+    }
+
     // Running header on scroll
     this.setupRunningHeader(container, manuscript.chapters);
   }
@@ -160,6 +168,43 @@ export class GalleyView extends ItemView {
       .forEach((el) => observer.observe(el));
 
     this.register(() => observer.disconnect());
+  }
+
+  private getHighlights(file: TFile): GalleyHighlight[] {
+    const cache = this.app.metadataCache.getFileCache(file);
+    return parseHighlights(cache?.frontmatter);
+  }
+
+  private applyHighlights(
+    container: HTMLElement,
+    highlights: GalleyHighlight[]
+  ): void {
+    // Apply highlights to each chapter body's rendered HTML
+    container.querySelectorAll(".galley-chapter-body").forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      htmlEl.innerHTML = applyHighlightsToHtml(htmlEl.innerHTML, highlights);
+    });
+  }
+
+  private renderHighlightsSummary(
+    parent: HTMLElement,
+    highlights: GalleyHighlight[]
+  ): void {
+    const summary = parent.createDiv({ cls: "galley-highlights-summary" });
+    summary.createEl("h2", {
+      cls: "galley-highlights-title",
+      text: "Revision Marks",
+    });
+    const list = summary.createEl("ul", { cls: "galley-highlights-list" });
+    for (const h of highlights) {
+      const li = list.createEl("li", { cls: "galley-highlights-item" });
+      const swatch = li.createSpan({ cls: `galley-highlight-swatch galley-highlight-swatch--${h.color}` });
+      swatch.setAttribute("aria-hidden", "true");
+      li.createSpan({ cls: "galley-highlights-text", text: `"${h.text}"` });
+      if (h.note) {
+        li.createSpan({ cls: "galley-highlights-note", text: ` — ${h.note}` });
+      }
+    }
   }
 
   private renderEmpty(): void {
