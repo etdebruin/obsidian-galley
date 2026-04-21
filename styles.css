@@ -1,0 +1,388 @@
+/* ============================================================
+   GALLEY — Book-like manuscript reading for Obsidian
+   ============================================================ */
+
+/* --- CSS Custom Properties (overridden by JS settings) --- */
+.galley-container {
+  --galley-font: Georgia, "Times New Roman", serif;
+  --galley-size: 18px;
+  --galley-line-height: 1.8;
+  --galley-page-width: 640px;
+
+  /* Theme colors — overridden by data-galley-theme */
+  --galley-bg: #faf8f3;
+  --galley-text: #2c2a25;
+  --galley-text-muted: #7a7568;
+  --galley-accent: #8b6914;
+  --galley-border: #e8e3d8;
+  --galley-chapter-bg: #ffffff;
+  --galley-chapter-shadow: 0 1px 8px rgba(0, 0, 0, 0.06),
+    0 0 1px rgba(0, 0, 0, 0.08);
+  --galley-header-ornament: "◆";
+}
+
+/* --- Themes --- */
+[data-galley-theme="warm"] {
+  --galley-bg: #faf8f3;
+  --galley-text: #2c2a25;
+  --galley-text-muted: #7a7568;
+  --galley-accent: #8b6914;
+  --galley-border: #e8e3d8;
+  --galley-chapter-bg: #ffffff;
+  --galley-chapter-shadow: 0 1px 8px rgba(0, 0, 0, 0.06),
+    0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+[data-galley-theme="cool"] {
+  --galley-bg: #f5f7fa;
+  --galley-text: #1a1d23;
+  --galley-text-muted: #6b7280;
+  --galley-accent: #4a6fa5;
+  --galley-border: #dde1e8;
+  --galley-chapter-bg: #ffffff;
+  --galley-chapter-shadow: 0 1px 8px rgba(0, 0, 0, 0.05),
+    0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+[data-galley-theme="sepia"] {
+  --galley-bg: #f4ecd8;
+  --galley-text: #3b3226;
+  --galley-text-muted: #7a6e5d;
+  --galley-accent: #8b5e34;
+  --galley-border: #d9cfb8;
+  --galley-chapter-bg: #faf3e3;
+  --galley-chapter-shadow: 0 1px 8px rgba(60, 40, 10, 0.08),
+    0 0 1px rgba(60, 40, 10, 0.1);
+}
+
+[data-galley-theme="dark"] {
+  --galley-bg: #1a1b1e;
+  --galley-text: #d4d2cd;
+  --galley-text-muted: #7a786f;
+  --galley-accent: #c9a84c;
+  --galley-border: #2e2f33;
+  --galley-chapter-bg: #222326;
+  --galley-chapter-shadow: 0 1px 12px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Container --- */
+.galley-container {
+  background: var(--galley-bg);
+  color: var(--galley-text);
+  font-family: var(--galley-font);
+  font-size: var(--galley-size);
+  line-height: var(--galley-line-height);
+  overflow-y: auto;
+  padding: 0;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+}
+
+/* --- Running Header --- */
+.galley-running-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--galley-bg);
+  border-bottom: 1px solid var(--galley-border);
+  padding: 8px 24px;
+  font-size: 0.72em;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+  color: var(--galley-text-muted);
+  text-align: center;
+  backdrop-filter: blur(8px);
+  opacity: 0.92;
+}
+
+/* --- Manuscript wrapper --- */
+.galley-manuscript {
+  max-width: var(--galley-page-width);
+  margin: 0 auto;
+  padding: 48px 32px 120px;
+}
+
+/* --- Title Page --- */
+.galley-header {
+  text-align: center;
+  padding: 80px 0 48px;
+  border-bottom: 1px solid var(--galley-border);
+  margin-bottom: 48px;
+}
+
+.galley-header::after {
+  content: var(--galley-header-ornament);
+  display: block;
+  margin-top: 32px;
+  font-size: 0.8em;
+  color: var(--galley-text-muted);
+  letter-spacing: 0.3em;
+}
+
+.galley-title {
+  font-family: var(--galley-font);
+  font-size: 2.4em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin: 0 0 16px;
+  color: var(--galley-text);
+}
+
+.galley-wordcount {
+  font-size: 0.78em;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--galley-text-muted);
+  margin: 0;
+}
+
+/* --- Table of Contents --- */
+.galley-toc {
+  padding: 32px 0 48px;
+  border-bottom: 1px solid var(--galley-border);
+  margin-bottom: 56px;
+}
+
+.galley-toc-title {
+  font-size: 0.85em;
+  font-variant: small-caps;
+  letter-spacing: 0.15em;
+  color: var(--galley-text-muted);
+  text-align: center;
+  font-weight: 400;
+  margin: 0 0 24px;
+}
+
+.galley-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.galley-toc-list li {
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--galley-border);
+}
+
+.galley-toc-list li:last-child {
+  border-bottom: none;
+}
+
+.galley-toc-link {
+  color: var(--galley-text);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: color 0.15s ease;
+}
+
+.galley-toc-link:hover {
+  color: var(--galley-accent);
+}
+
+/* --- Chapters --- */
+.galley-chapter {
+  margin-bottom: 64px;
+  padding-top: 48px;
+}
+
+.galley-chapter:first-child {
+  padding-top: 0;
+}
+
+.galley-chapter-title {
+  font-family: var(--galley-font);
+  font-weight: 400;
+  text-align: center;
+  margin: 0 0 40px;
+  color: var(--galley-text);
+  position: relative;
+  padding-bottom: 24px;
+}
+
+h1.galley-chapter-title {
+  font-size: 1.8em;
+  letter-spacing: 0.03em;
+}
+
+h2.galley-chapter-title {
+  font-size: 1.4em;
+  letter-spacing: 0.02em;
+}
+
+.galley-chapter-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 1px;
+  background: var(--galley-border);
+}
+
+/* --- Chapter Body Typography --- */
+.galley-chapter-body {
+  font-size: 1em;
+}
+
+.galley-chapter-body p {
+  margin: 0 0 1em;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  orphans: 2;
+  widows: 2;
+}
+
+/* First paragraph after chapter title — drop cap style indent */
+.galley-chapter-body p:first-of-type {
+  text-indent: 0;
+}
+
+.galley-chapter-body p:first-of-type::first-letter {
+  font-size: 3.2em;
+  float: left;
+  line-height: 0.8;
+  padding-right: 8px;
+  padding-top: 4px;
+  color: var(--galley-accent);
+  font-weight: 400;
+}
+
+/* Subsequent paragraphs get book-style indent */
+.galley-chapter-body p + p {
+  text-indent: 1.5em;
+  margin-top: -0.3em;
+}
+
+/* --- Blockquotes --- */
+.galley-chapter-body blockquote {
+  border-left: 2px solid var(--galley-border);
+  margin: 1.5em 0 1.5em 1em;
+  padding: 0.5em 0 0.5em 1.5em;
+  font-style: italic;
+  color: var(--galley-text-muted);
+}
+
+/* --- Horizontal Rules / Scene Breaks --- */
+.galley-chapter-body hr,
+.galley-separator {
+  border: none;
+  text-align: center;
+  margin: 2em 0;
+  height: auto;
+  background: none;
+}
+
+.galley-chapter-body hr::after,
+.galley-separator::after {
+  content: "* * *";
+  display: block;
+  font-size: 0.9em;
+  letter-spacing: 0.5em;
+  color: var(--galley-text-muted);
+}
+
+/* --- Headings within chapters (H3-H6) --- */
+.galley-chapter-body h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  margin: 2em 0 0.8em;
+  letter-spacing: 0.01em;
+}
+
+.galley-chapter-body h4 {
+  font-size: 1.05em;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  margin: 1.8em 0 0.6em;
+}
+
+/* --- Emphasis --- */
+.galley-chapter-body strong {
+  font-weight: 600;
+}
+
+.galley-chapter-body em {
+  font-style: italic;
+}
+
+/* --- Code (for authors including technical snippets) --- */
+.galley-chapter-body code,
+.galley-inline-code {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 0.85em;
+  background: var(--galley-border);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+/* --- Images --- */
+.galley-chapter-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 2em auto;
+  border-radius: 2px;
+}
+
+/* --- Empty State --- */
+.galley-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 48px;
+}
+
+.galley-empty-message {
+  font-style: italic;
+  color: var(--galley-text-muted);
+  font-size: 1.1em;
+}
+
+/* --- Scroll behavior --- */
+.galley-container {
+  scroll-behavior: smooth;
+}
+
+/* --- Print / Export support --- */
+@media print {
+  .galley-running-header {
+    display: none;
+  }
+
+  .galley-chapter {
+    page-break-before: always;
+  }
+
+  .galley-chapter:first-child {
+    page-break-before: avoid;
+  }
+
+  .galley-toc {
+    page-break-after: always;
+  }
+}
+
+/* --- Responsive adjustments --- */
+@media (max-width: 600px) {
+  .galley-manuscript {
+    padding: 24px 16px 80px;
+  }
+
+  .galley-header {
+    padding: 40px 0 32px;
+  }
+
+  .galley-title {
+    font-size: 1.8em;
+  }
+}
