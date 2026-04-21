@@ -80,6 +80,7 @@ export class PageController {
   private container: HTMLElement;
   private content: HTMLElement;
   private indicator: HTMLElement;
+  private pageHeader: HTMLElement;
   private currentPage = 0;
   private totalPages = 1;
   private pageWidth = 0;
@@ -93,6 +94,10 @@ export class PageController {
   constructor(container: HTMLElement, content: HTMLElement) {
     this.container = container;
     this.content = content;
+
+    this.pageHeader = document.createElement("div");
+    this.pageHeader.className = "galley-page-header";
+    this.container.prepend(this.pageHeader);
 
     this.indicator = document.createElement("div");
     this.indicator.className = "galley-page-indicator";
@@ -243,7 +248,9 @@ export class PageController {
   }
 
   private updateIndicator(): void {
-    this.indicator.textContent = `${this.currentPage + 1} of ${this.totalPages}`;
+    const current = this.currentPage + 1;
+    this.pageHeader.textContent = `${current}`;
+    this.indicator.textContent = `${current} of ${this.totalPages}`;
   }
 
   goToPage(page: number): void {
@@ -256,6 +263,7 @@ export class PageController {
     this.content.removeEventListener("touchstart", this.onTouchStart);
     this.content.removeEventListener("touchmove", this.onTouchMove);
     this.content.removeEventListener("touchend", this.onTouchEnd);
+    this.pageHeader.remove();
     this.indicator.remove();
   }
 }

@@ -632,7 +632,22 @@ h2.galley-chapter-title {
   break-inside: avoid;
 }
 
-/* --- Page Indicator --- */
+/* --- Page Header (top) --- */
+.galley-page-header {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--galley-text-muted);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* --- Page Indicator (bottom) --- */
 .galley-page-indicator {
   position: absolute;
   bottom: 16px;
