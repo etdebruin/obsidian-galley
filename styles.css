@@ -502,13 +502,10 @@ h2.galley-chapter-title {
 }
 
 .galley-paginated .galley-manuscript {
-  /* CSS multi-column layout creates the pages */
-  column-width: 100vw;
+  /* Column width and height set dynamically by PageController */
   column-fill: auto;
-  column-gap: 0;
-  height: 100%;
   max-width: none;
-  padding: 24px 24px 60px;
+  padding: 24px;
   overflow: visible;
   will-change: transform;
 }

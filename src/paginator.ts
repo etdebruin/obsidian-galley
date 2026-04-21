@@ -121,7 +121,17 @@ export class PageController {
 
   recalculate(): void {
     this.pageWidth = this.container.clientWidth;
-    // Account for column gap in the total scrollable width
+
+    // Set column width dynamically — CSS 100vw is unreliable in Obsidian's webview
+    const padding = 48; // 24px left + 24px right
+    const columnWidth = this.pageWidth - padding;
+    this.content.style.columnWidth = `${columnWidth}px`;
+    this.content.style.columnGap = `${padding}px`;
+    this.content.style.height = `${this.container.clientHeight - 60}px`; // leave room for indicator
+
+    // Force layout recalc before measuring scroll width
+    void this.content.offsetWidth;
+
     this.totalPages = computePageCount(
       this.content.scrollWidth,
       this.pageWidth

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-galley",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Beautiful, book-like manuscript reading experience for Obsidian",
   "main": "main.js",
   "scripts": {

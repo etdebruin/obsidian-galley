@@ -4,6 +4,7 @@ export interface GalleySettings {
   lineHeight: number;
   pageWidth: number;
   theme: "warm" | "cool" | "sepia" | "dark";
+  mobileMode: "paginate" | "scroll";
   showWordCount: boolean;
   showTableOfContents: boolean;
 }
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: GalleySettings = {
   lineHeight: 1.8,
   pageWidth: 640,
   theme: "warm",
+  mobileMode: "paginate",
   showWordCount: true,
   showTableOfContents: true,
 };

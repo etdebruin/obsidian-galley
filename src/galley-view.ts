@@ -132,8 +132,8 @@ export class GalleyView extends ItemView {
       this.renderHighlightsSummary(galleyEl, highlights);
     }
 
-    // Mobile: paginated swipe view; Desktop: scroll with running header
-    if (Platform.isMobile) {
+    // Mobile + paginate setting: swipe pages; otherwise: scroll with running header
+    if (Platform.isMobile && settings.mobileMode === "paginate") {
       container.addClass("galley-paginated");
       this.setupPagination(container, galleyEl);
     } else {

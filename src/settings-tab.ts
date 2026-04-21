@@ -85,6 +85,20 @@ export class GalleySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Mobile reading mode")
+      .setDesc("Paginate for a book-like swipe experience, or scroll for continuous reading")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("paginate", "Paginate (swipe pages)")
+          .addOption("scroll", "Scroll")
+          .setValue(this.plugin.settings.mobileMode)
+          .onChange(async (value) => {
+            this.plugin.settings.mobileMode = value as "paginate" | "scroll";
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
       .setName("Show word count")
       .setDesc("Display word count below the title")
       .addToggle((toggle) =>
