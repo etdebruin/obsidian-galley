@@ -87,6 +87,7 @@ export class PageController {
   private touchStartY = 0;
   private touchStartTime = 0;
   private isDragging = false;
+  private directionLocked: "horizontal" | "vertical" | null = null;
   private currentTranslate = 0;
 
   constructor(container: HTMLElement, content: HTMLElement) {
@@ -121,10 +122,12 @@ export class PageController {
 
     const padding = 48;
     const columnWidth = this.pageWidth - padding;
+    // Reserve space for page indicator (30px) and mobile toolbar (60px)
+    const bottomReserve = 90;
     this.content.setCssProps({
       "--galley-column-width": `${columnWidth}px`,
       "--galley-column-gap": `${padding}px`,
-      "--galley-content-height": `${this.container.clientHeight - 60}px`,
+      "--galley-content-height": `${this.container.clientHeight - bottomReserve}px`,
     });
 
     void this.content.offsetWidth;
@@ -143,6 +146,7 @@ export class PageController {
     this.touchStartY = e.touches[0].clientY;
     this.touchStartTime = Date.now();
     this.isDragging = true;
+    this.directionLocked = null;
     this.content.removeClass("galley-page-animate");
   };
 
@@ -150,20 +154,32 @@ export class PageController {
     if (!this.isDragging) return;
 
     const deltaX = e.touches[0].clientX - this.touchStartX;
-    const deltaY = Math.abs(e.touches[0].clientY - this.touchStartY);
+    const deltaY = e.touches[0].clientY - this.touchStartY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
 
-    if (deltaY > Math.abs(deltaX)) {
+    // Lock direction on first significant movement
+    if (!this.directionLocked && (absDeltaX > 5 || absDeltaY > 5)) {
+      this.directionLocked = absDeltaX > absDeltaY ? "horizontal" : "vertical";
+    }
+
+    // Vertical — let browser handle native scroll
+    if (this.directionLocked === "vertical") {
       this.isDragging = false;
       return;
     }
 
-    e.preventDefault();
+    // Horizontal — take full control, prevent native scroll
+    if (this.directionLocked === "horizontal") {
+      e.preventDefault();
+      e.stopPropagation();
 
-    const baseOffset = -(this.currentPage * this.pageWidth);
-    this.currentTranslate = baseOffset + deltaX;
-    this.content.setCssProps({
-      "--galley-translate-x": `${this.currentTranslate}px`,
-    });
+      const baseOffset = -(this.currentPage * this.pageWidth);
+      this.currentTranslate = baseOffset + deltaX;
+      this.content.setCssProps({
+        "--galley-translate-x": `${this.currentTranslate}px`,
+      });
+    }
   };
 
   private onTouchEnd = (e: TouchEvent): void => {

@@ -574,6 +574,8 @@ h2.galley-chapter-title {
 .galley-paginated {
   overflow: hidden;
   position: relative;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: auto;
 }
 
 .galley-paginated .galley-running-header {
@@ -586,10 +588,11 @@ h2.galley-chapter-title {
   height: var(--galley-content-height, 100%);
   column-fill: auto;
   max-width: none;
-  padding: 24px;
+  padding: 24px 24px 0;
   overflow: visible;
   will-change: transform;
   transform: translateX(var(--galley-translate-x, 0));
+  touch-action: none;
 }
 
 .galley-paginated .galley-manuscript.galley-page-animate {
