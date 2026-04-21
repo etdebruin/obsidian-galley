@@ -67,6 +67,12 @@
 }
 
 /* --- Container --- */
+.galley-container,
+.galley-container * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .galley-container {
   background: var(--galley-bg);
   color: var(--galley-text);
