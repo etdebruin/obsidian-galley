@@ -464,6 +464,85 @@ h2.galley-chapter-title {
   color: var(--galley-text-muted);
 }
 
+/* --- Highlight Note Modal --- */
+.galley-note-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.galley-note-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.galley-note-dialog {
+  position: relative;
+  background: var(--background-primary, #fff);
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.galley-note-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-normal, #333);
+}
+
+.galley-note-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--background-modifier-border, #ddd);
+  border-radius: 4px;
+  background: var(--background-primary, #fff);
+  color: var(--text-normal, #333);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.galley-note-input:focus {
+  border-color: var(--interactive-accent, #7b6cd9);
+}
+
+.galley-note-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.galley-note-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.galley-note-skip {
+  background: var(--background-modifier-border, #e0e0e0);
+  color: var(--text-muted, #666);
+}
+
+.galley-note-save {
+  background: var(--interactive-accent, #7b6cd9);
+  color: #fff;
+}
+
+.galley-note-btn:hover {
+  opacity: 0.9;
+}
+
 /* --- Scroll behavior --- */
 .galley-container {
   scroll-behavior: smooth;

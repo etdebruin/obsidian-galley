@@ -1,7 +1,8 @@
-import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile, Platform } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownRenderer, TFile, Platform, Menu } from "obsidian";
 import type GalleyPlugin from "./main";
 import { parseManuscript } from "./manuscript";
-import { parseHighlights, applyHighlightsToHtml, GalleyHighlight } from "./highlights";
+import { parseHighlights, applyHighlightsToHtml, GalleyHighlight, HIGHLIGHT_COLORS } from "./highlights";
+import { addHighlightToFrontmatter, removeHighlightFromFrontmatter } from "./highlight-writer";
 import { PageController } from "./paginator";
 
 export const GALLEY_VIEW_TYPE = "galley-view";
@@ -42,6 +43,119 @@ export class GalleyView extends ItemView {
       })
     );
     await this.renderActiveFile();
+  }
+
+  private setupContextMenu(container: HTMLElement): void {
+    container.addEventListener("contextmenu", (e: MouseEvent) => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim();
+      if (!selectedText) return;
+
+      // Check if right-clicking an existing highlight
+      const target = e.target as HTMLElement;
+      const existingHighlight = target.closest(".galley-highlight") as HTMLElement | null;
+
+      e.preventDefault();
+      const menu = new Menu();
+
+      if (existingHighlight) {
+        // Offer to remove existing highlight
+        menu.addItem((item) =>
+          item
+            .setTitle("Remove highlight")
+            .setIcon("trash")
+            .onClick(() => this.removeHighlight(existingHighlight.textContent || ""))
+        );
+        menu.addSeparator();
+      }
+
+      // Color options
+      const colors = Object.keys(HIGHLIGHT_COLORS) as string[];
+      const colorLabels: Record<string, string> = {
+        yellow: "Yellow — needs work",
+        red: "Red — problem",
+        green: "Green — keep this",
+        blue: "Blue — research needed",
+        purple: "Purple — idea",
+      };
+
+      for (const color of colors) {
+        menu.addItem((item) =>
+          item
+            .setTitle(`Highlight: ${colorLabels[color] || color}`)
+            .setIcon("highlighter")
+            .onClick(() => this.addHighlightInteractive(selectedText, color))
+        );
+      }
+
+      menu.showAtMouseEvent(e);
+    });
+  }
+
+  private async addHighlightInteractive(text: string, color: string): Promise<void> {
+    // Prompt for optional note
+    const note = await this.promptForNote();
+    const highlight: GalleyHighlight = { text, color, note: note || undefined };
+    await this.writeHighlightToFile(highlight);
+  }
+
+  private promptForNote(): Promise<string | null> {
+    return new Promise((resolve) => {
+      const modal = document.createElement("div");
+      modal.className = "galley-note-modal";
+      modal.innerHTML = `
+        <div class="galley-note-backdrop"></div>
+        <div class="galley-note-dialog">
+          <label class="galley-note-label">Add a note (optional)</label>
+          <input type="text" class="galley-note-input" placeholder="e.g. pacing feels rushed here" />
+          <div class="galley-note-buttons">
+            <button class="galley-note-btn galley-note-skip">Skip</button>
+            <button class="galley-note-btn galley-note-save">Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const input = modal.querySelector(".galley-note-input") as HTMLInputElement;
+      const saveBtn = modal.querySelector(".galley-note-save") as HTMLButtonElement;
+      const skipBtn = modal.querySelector(".galley-note-skip") as HTMLButtonElement;
+      const backdrop = modal.querySelector(".galley-note-backdrop") as HTMLElement;
+
+      const cleanup = (value: string | null) => {
+        modal.remove();
+        resolve(value);
+      };
+
+      input.focus();
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") cleanup(input.value || null);
+        if (e.key === "Escape") cleanup(null);
+      });
+      saveBtn.addEventListener("click", () => cleanup(input.value || null));
+      skipBtn.addEventListener("click", () => cleanup(null));
+      backdrop.addEventListener("click", () => cleanup(null));
+    });
+  }
+
+  private async writeHighlightToFile(highlight: GalleyHighlight): Promise<void> {
+    if (!this.currentFile) return;
+    const file = this.app.vault.getAbstractFileByPath(this.currentFile);
+    if (!file || !(file instanceof TFile)) return;
+
+    const content = await this.app.vault.read(file);
+    const updated = addHighlightToFrontmatter(content, highlight);
+    await this.app.vault.modify(file, updated);
+    // View will re-render via the modify event listener
+  }
+
+  private async removeHighlight(text: string): Promise<void> {
+    if (!this.currentFile) return;
+    const file = this.app.vault.getAbstractFileByPath(this.currentFile);
+    if (!file || !(file instanceof TFile)) return;
+
+    const content = await this.app.vault.read(file);
+    const updated = removeHighlightFromFrontmatter(content, text);
+    await this.app.vault.modify(file, updated);
   }
 
   async renderActiveFile(): Promise<void> {
@@ -124,6 +238,9 @@ export class GalleyView extends ItemView {
         this
       );
     }
+
+    // Context menu for highlight creation
+    this.setupContextMenu(body);
 
     // Apply frontmatter-based highlights
     const highlights = this.getHighlights(file);
