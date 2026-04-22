@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: GalleySettings = {
   lineHeight: 1.8,
   pageWidth: 640,
   theme: "warm",
-  mobileMode: "paginate",
+  mobileMode: "scroll",
   showWordCount: true,
   showTableOfContents: true,
 };
