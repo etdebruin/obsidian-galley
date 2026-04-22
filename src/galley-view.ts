@@ -13,6 +13,7 @@ export class GalleyView extends ItemView {
   private currentFile: string | null = null;
   private pageController: PageController | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private isSavingBookmark = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: GalleyPlugin) {
     super(leaf);
@@ -39,7 +40,7 @@ export class GalleyView extends ItemView {
     );
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
-        if (file.path === this.currentFile) {
+        if (file.path === this.currentFile && !this.isSavingBookmark) {
           void this.renderActiveFile();
         }
       })
@@ -435,7 +436,9 @@ export class GalleyView extends ItemView {
     const content = await this.app.vault.read(file);
     const updated = writeBookmark(content, pos);
     if (updated !== content) {
+      this.isSavingBookmark = true;
       await this.app.vault.modify(file, updated);
+      this.isSavingBookmark = false;
     }
   }
 
