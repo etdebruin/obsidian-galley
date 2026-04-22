@@ -310,11 +310,12 @@ export class GalleyView extends ItemView {
   ): void {
     this.pageController?.destroy();
 
+    // Delay to let DOM settle before measuring heights
     setTimeout(() => {
       this.pageController = new PageController(container, content, (page) => {
-        this.debouncedSaveBookmark(0, page);
+        this.debouncedSaveBookmark(container.scrollTop, page);
       });
-    }, 100);
+    }, 150);
   }
 
   private getHighlights(file: TFile): GalleyHighlight[] {

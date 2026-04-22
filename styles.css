@@ -574,65 +574,18 @@ h2.galley-chapter-title {
 .galley-paginated {
   overflow: hidden;
   position: relative;
+  /* Prevent all native scrolling — PageController handles it via scrollTo */
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .galley-paginated .galley-running-header {
   display: none;
 }
 
-/* Scroll wrapper: native horizontal scroll + snap for pagination */
-.galley-scroll-wrapper {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
-}
-
-.galley-scroll-wrapper::-webkit-scrollbar {
-  display: none;
-}
-
 .galley-paginated .galley-manuscript {
-  /* column-width, column-gap, height set by JS */
-  column-fill: auto;
   max-width: none;
-  padding: 24px;
-  scroll-snap-align: start;
-}
-
-.galley-paginated .galley-header {
-  break-after: column;
-  padding: 60px 0 32px;
-}
-
-.galley-paginated .galley-toc {
-  break-after: column;
-}
-
-.galley-paginated .galley-chapter {
-  break-before: column;
-  margin-bottom: 0;
-  padding-top: 24px;
-}
-
-.galley-paginated .galley-chapter:first-child {
-  break-before: auto;
-}
-
-/* Prevent elements from breaking across pages */
-.galley-paginated .galley-chapter-title {
-  break-after: avoid;
-}
-
-.galley-paginated .galley-chapter-body p {
-  orphans: 3;
-  widows: 3;
-}
-
-.galley-paginated .galley-chapter-body blockquote {
-  break-inside: avoid;
+  padding: 24px 24px 0;
 }
 
 /* --- Page Header (top) --- */
@@ -650,10 +603,10 @@ h2.galley-chapter-title {
   opacity: 0.6;
 }
 
-/* --- Page Indicator (bottom) --- */
+/* --- Page Indicator (bottom — above Obsidian toolbar) --- */
 .galley-page-indicator {
-  position: absolute;
-  bottom: 16px;
+  position: fixed;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.7em;
@@ -663,23 +616,6 @@ h2.galley-chapter-title {
   z-index: 10;
   pointer-events: none;
   opacity: 0.7;
-}
-
-/* --- Page Turn Shadow (during drag) --- */
-.galley-paginated .galley-manuscript::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 20px;
-  height: 100%;
-  background: linear-gradient(
-    to left,
-    rgba(0, 0, 0, 0.06),
-    transparent
-  );
-  pointer-events: none;
-  opacity: 0;
   transition: opacity 0.2s ease;
 }
 
