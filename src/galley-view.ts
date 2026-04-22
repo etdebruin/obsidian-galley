@@ -3,6 +3,7 @@ import type GalleyPlugin from "./main";
 import { parseManuscript } from "./manuscript";
 import { parseHighlights, GalleyHighlight, HIGHLIGHT_COLORS } from "./highlights";
 import { addHighlightToFrontmatter, removeHighlightFromFrontmatter } from "./highlight-writer";
+import { parseBookmark, writeBookmark, ReadingPosition } from "./bookmark";
 import { PageController } from "./paginator";
 
 export const GALLEY_VIEW_TYPE = "galley-view";
@@ -11,6 +12,7 @@ export class GalleyView extends ItemView {
   plugin: GalleyPlugin;
   private currentFile: string | null = null;
   private pageController: PageController | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: GalleyPlugin) {
     super(leaf);
@@ -258,7 +260,11 @@ export class GalleyView extends ItemView {
       this.setupPagination(container, galleyEl);
     } else {
       this.setupRunningHeader(container, manuscript.chapters);
+      this.setupScrollBookmark(container);
     }
+
+    // Restore saved reading position
+    this.restoreBookmark(file, container);
   }
 
   private setupRunningHeader(
@@ -304,7 +310,9 @@ export class GalleyView extends ItemView {
     this.pageController?.destroy();
 
     setTimeout(() => {
-      this.pageController = new PageController(container, content);
+      this.pageController = new PageController(container, content, (page) => {
+        this.debouncedSaveBookmark(0, page);
+      });
     }, 100);
   }
 
@@ -380,6 +388,71 @@ export class GalleyView extends ItemView {
     }
   }
 
+  private restoreBookmark(file: TFile, container: HTMLElement): void {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const bookmark = parseBookmark(cache?.frontmatter);
+    if (!bookmark) return;
+
+    // Small delay to let layout settle
+    setTimeout(() => {
+      if (Platform.isMobile && this.pageController && bookmark.page !== undefined) {
+        this.pageController.goToPage(bookmark.page);
+      } else if (bookmark.scroll !== undefined) {
+        container.scrollTop = bookmark.scroll;
+      }
+    }, 200);
+  }
+
+  private setupScrollBookmark(container: HTMLElement): void {
+    container.addEventListener("scroll", () => {
+      this.debouncedSaveBookmark(container.scrollTop);
+    }, { passive: true });
+  }
+
+  private debouncedSaveBookmark(scroll: number, page?: number): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      void this.saveBookmark(scroll, page);
+    }, 2000);
+  }
+
+  private async saveBookmark(scroll: number, page?: number): Promise<void> {
+    if (!this.currentFile) return;
+    const file = this.app.vault.getAbstractFileByPath(this.currentFile);
+    if (!file || !(file instanceof TFile)) return;
+
+    // Find current chapter from visible content
+    const chapter = this.getCurrentChapter();
+    const today = new Date().toISOString().split("T")[0];
+
+    const pos: ReadingPosition = {
+      scroll,
+      updated: today,
+    };
+    if (page !== undefined) pos.page = page;
+    if (chapter) pos.chapter = chapter;
+
+    const content = await this.app.vault.read(file);
+    const updated = writeBookmark(content, pos);
+    if (updated !== content) {
+      await this.app.vault.modify(file, updated);
+    }
+  }
+
+  private getCurrentChapter(): string | undefined {
+    const container = this.contentEl;
+    const chapters = container.querySelectorAll(".galley-chapter");
+    for (const ch of Array.from(chapters).reverse()) {
+      const rect = ch.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      if (rect.top <= containerRect.top + containerRect.height / 2) {
+        const title = ch.querySelector(".galley-chapter-title");
+        return title?.textContent || undefined;
+      }
+    }
+    return undefined;
+  }
+
   private renderEmpty(): void {
     const container = this.contentEl;
     container.empty();
@@ -391,10 +464,15 @@ export class GalleyView extends ItemView {
     });
   }
 
-  onClose(): Promise<void> {
+  async onClose(): Promise<void> {
+    // Save position before closing
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    const container = this.contentEl;
+    const page = this.pageController ? undefined : undefined;
+    await this.saveBookmark(container.scrollTop, page);
+
     this.pageController?.destroy();
     this.pageController = null;
     this.contentEl.empty();
-    return Promise.resolve();
   }
 }

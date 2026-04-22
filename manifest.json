@@ -1,7 +1,7 @@
 {
   "id": "galley",
   "name": "Galley",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "minAppVersion": "1.4.0",
   "description": "Beautiful, book-like manuscript reading experience. See your writing as it deserves to be read.",
   "author": "Etienne",

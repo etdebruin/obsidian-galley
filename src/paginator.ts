@@ -89,8 +89,10 @@ export class PageController {
   private totalPages = 1;
   private pageWidth = 0;
   private scrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private onPageChange: ((page: number) => void) | null = null;
 
-  constructor(container: HTMLElement, content: HTMLElement) {
+  constructor(container: HTMLElement, content: HTMLElement, onPageChange?: (page: number) => void) {
+    this.onPageChange = onPageChange || null;
     this.container = container;
     this.content = content;
 
@@ -189,7 +191,7 @@ export class PageController {
     }
   }
 
-  private goToPage(page: number, smooth: boolean): void {
+  goToPage(page: number, smooth: boolean = true): void {
     this.wrapper.scrollTo({
       left: page * this.pageWidth,
       behavior: smooth ? "smooth" : "auto",
@@ -200,6 +202,9 @@ export class PageController {
     const current = this.currentPage + 1;
     this.pageHeader.textContent = `${current}`;
     this.indicator.textContent = `${current} of ${this.totalPages}`;
+    if (this.onPageChange) {
+      this.onPageChange(this.currentPage);
+    }
   }
 
   destroy(): void {
