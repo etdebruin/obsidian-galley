@@ -55,7 +55,7 @@ export class GalleyView extends ItemView {
       if (!selectedText) return;
 
       const target = e.target as HTMLElement;
-      const existingHighlight = target.closest(".galley-highlight") as HTMLElement | null;
+      const existingHighlight = target.closest(".galley-highlight");
 
       e.preventDefault();
       const menu = new Menu();
@@ -72,7 +72,7 @@ export class GalleyView extends ItemView {
         menu.addSeparator();
       }
 
-      const colors = Object.keys(HIGHLIGHT_COLORS) as string[];
+      const colors = Object.keys(HIGHLIGHT_COLORS);
       const colorLabels: Record<string, string> = {
         yellow: "Yellow — needs work",
         red: "Red — problem",
@@ -462,7 +462,7 @@ export class GalleyView extends ItemView {
     container.addClass("galley-container");
     const empty = container.createDiv({ cls: "galley-empty" });
     empty.createEl("p", {
-      text: "Open a markdown file to view it in Galley.",
+      text: "Open a markdown file to begin reading.",
       cls: "galley-empty-message",
     });
   }
