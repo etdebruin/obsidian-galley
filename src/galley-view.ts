@@ -463,7 +463,7 @@ export class GalleyView extends ItemView {
     container.addClass("galley-container");
     const empty = container.createDiv({ cls: "galley-empty" });
     empty.createEl("p", {
-      text: "Open a markdown file to begin reading.",
+      text: "Open a Markdown file to begin reading.",
       cls: "galley-empty-message",
     });
   }
